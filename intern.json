@@ -1,0 +1,3 @@
+{
+    "suites": "dist/tests/unit/**/*.js"
+}

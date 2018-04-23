@@ -8,12 +8,15 @@
     "dist/index.d.ts"
   ],
   "scripts": {
-    "prepare": "tsc"
+    "prepare": "tsc",
+    "test": "intern"
   },
   "author": "WSDOT",
   "license": "Unlicense",
   "private": true,
   "devDependencies": {
+    "intern": "^4.2.0",
+    "isomorphic-fetch": "^2.2.1",
     "prettier": "^1.12.1",
     "tslint": "^5.9.1",
     "tslint-config-prettier": "^1.12.0",
