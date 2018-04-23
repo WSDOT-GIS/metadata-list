@@ -13,7 +13,7 @@
   },
   "author": "WSDOT",
   "license": "Unlicense",
-  "private": true,
+  "access": "public",
   "devDependencies": {
     "intern": "^4.2.0",
     "isomorphic-fetch": "^2.2.1",
