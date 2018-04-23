@@ -93,6 +93,49 @@ export async function getMapServiceData(url: string): Promise<IMapServiceInfo> {
   return serviceInfo;
 }
 
+export function supportsLayerMetadata(msInfo: IMapServiceInfo) {
+  return (
+    msInfo.supportedExtensions &&
+    msInfo.supportedExtensions.includes(layerMetadataCapability)
+  );
+}
+
+/**
+ * Gets the metadata URL for a feature layer.
+ * @param url URL for a feature layer. Should end in a digit.
+ */
+export async function getFeatureLayerMetadata(
+  url: string
+): Promise<string | null> {
+  const layerUrlRe = /^(https?:\/\/.+\/(?:(?:Map)|(?:Feature))Server)\/(\d+)\/?$/;
+  const match = url.match(layerUrlRe);
+  if (!match) {
+    throw new Error("URL could not be parsed.");
+  }
+
+  const serviceUrl = match[1];
+  const id = parseInt(match[2], 10);
+
+  const mapServiceInfo = await getMapServiceData(serviceUrl);
+  const { supportedExtensions } = mapServiceInfo;
+  if (!supportsLayerMetadata(mapServiceInfo)) {
+    throw new Error("Service does not support LayerMetadata SOE.");
+  }
+
+  const validLayersUrl = `${serviceUrl}/exts/${layerMetadataCapability}/validLayers?f=json`;
+
+  const response = await fetch(validLayersUrl);
+  const responseJson = (await response.json()) as {
+    layerIds: number[];
+  };
+  const { layerIds } = responseJson;
+
+  if (layerIds.includes(id)) {
+    return `${serviceUrl}/exts/${layerMetadataCapability}/metadata/${id}`;
+  }
+  return null;
+}
+
 /**
  * Returns a list of URLs to geodata metadata documents.
  * @param url URL to a map service
