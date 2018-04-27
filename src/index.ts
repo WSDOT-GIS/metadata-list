@@ -70,6 +70,19 @@ export interface IMetadataDocList {
 const layerMetadataCapability = "LayerMetadata";
 
 /**
+ * Checks to see if the service URL ends with a number which would indicate a feature layer.
+ * @param url A service URL
+ * @example
+ *
+ * isSingleLayer("https://example.com/arcgis/myservice/MapServer") // false
+ * isSingleLayer("https://example.com/arcgis/myservice/MapServer/0") // true
+ * isSingleLayer("https://example.com/arcgis/myservice/MapServer0") // false
+ */
+export function isSingleLayer(url: string): boolean {
+  return /\/\d+\/?$/.test(url);
+}
+
+/**
  * Custom JSON parsing.
  * @param key the name of an object's property
  * @param value the value of the property
