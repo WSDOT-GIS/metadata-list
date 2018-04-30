@@ -1,3 +1,18 @@
+/**
+ * Regular expression.
+ * 0. Matched string
+ * 1. Capture: Map Service URL
+ * 2. Capture: Layer ID integer. Will be undefined if URL contains no such identifier.
+ * @example
+ * const match = "http://example.com/arcgis/rest/services/folder/servicename/MapServer/0".match(mapServiceRe);
+ * if (!match) {
+ *  throw new Error("Invalid URL")
+ * }
+ * const [ wholeUrl, mapServiceUrl, layerIdString ] = match;
+ * const layerId = layerIdString ? parseInt(layerIdString, 10) : null;
+ */
+const mapServiceRe = /^(.+?)(?:\/(\d+))?\/?$/;
+
 export interface IMapServiceInfo {
   [key: string]: any;
   /**
@@ -106,77 +121,94 @@ export async function getMapServiceData(url: string): Promise<IMapServiceInfo> {
   return serviceInfo;
 }
 
-export function supportsLayerMetadata(msInfo: IMapServiceInfo) {
-  return (
+/**
+ * Checks to see if "LayerMetadata" is supported in the map service's
+ * supportedExtensions list.
+ * @param msInfo JSON data returned from a map service's root
+ * @returns {boolean} Returns true if layerMetadata is supported, false otherwise.
+ */
+export function supportsLayerMetadata(msInfo: IMapServiceInfo): boolean {
+  return !!(
     msInfo.supportedExtensions &&
     msInfo.supportedExtensions.includes(layerMetadataCapability)
   );
 }
 
-/**
- * Gets the metadata URL for a feature layer.
- * @param url URL for a feature layer. Should end in a digit.
- */
-export async function getFeatureLayerMetadata(
-  url: string
-): Promise<string | null> {
-  const layerUrlRe = /^(https?:\/\/.+\/(?:(?:Map)|(?:Feature))Server)\/(\d+)\/?$/;
-  const match = url.match(layerUrlRe);
+// /**
+//  * Gets the metadata URL for a feature layer.
+//  * @param url URL for a feature layer. Should end in a digit.
+//  */
+// export async function getFeatureLayerMetadata(
+//   url: string
+// ): Promise<string | null> {
+//   const layerUrlRe = /^(.+Server)\/(\d+)\/?$/;
+//   const match = url.match(layerUrlRe);
+//   if (!match) {
+//     throw new Error("URL could not be parsed.");
+//   }
+
+//   const serviceUrl = match[1];
+//   const id = parseInt(match[2], 10);
+
+//   const mapServiceInfo = await getMapServiceData(serviceUrl);
+//   const { supportedExtensions } = mapServiceInfo;
+//   if (!supportsLayerMetadata(mapServiceInfo)) {
+//     throw new Error("Service does not support LayerMetadata SOE.");
+//   }
+
+//   const validLayersUrl = `${serviceUrl}/exts/${layerMetadataCapability}/validLayers?f=json`;
+
+//   const response = await fetch(validLayersUrl);
+//   const responseJson = (await response.json()) as {
+//     layerIds: number[];
+//   };
+//   const { layerIds } = responseJson;
+
+//   if (layerIds.includes(id)) {
+//     return `${serviceUrl}/exts/${layerMetadataCapability}/metadata/${id}`;
+//   }
+//   return null;
+// }
+
+export async function getMapServiceMetadata(url: string) {
+  const match = url.match(mapServiceRe);
   if (!match) {
-    throw new Error("URL could not be parsed.");
+    throw new Error("Unrecognized URL format.");
   }
-
-  const serviceUrl = match[1];
-  const id = parseInt(match[2], 10);
-
-  const mapServiceInfo = await getMapServiceData(serviceUrl);
-  const { supportedExtensions } = mapServiceInfo;
-  if (!supportsLayerMetadata(mapServiceInfo)) {
-    throw new Error("Service does not support LayerMetadata SOE.");
-  }
-
-  const validLayersUrl = `${serviceUrl}/exts/${layerMetadataCapability}/validLayers?f=json`;
-
-  const response = await fetch(validLayersUrl);
-  const responseJson = (await response.json()) as {
-    layerIds: number[];
-  };
-  const { layerIds } = responseJson;
-
-  if (layerIds.includes(id)) {
-    return `${serviceUrl}/exts/${layerMetadataCapability}/metadata/${id}`;
-  }
-  return null;
-}
-
-/**
- * Returns a list of URLs to geodata metadata documents.
- * @param url URL to a map service
- * @returns If the LayerMetadata SOE is supported by the service, a list of metadata links is returned.
- * Otherwise null is returned.
- * @exception {SyntaxError} A syntax error will be thrown if the web reqests do not return JSON as expected.
- * The error message will look something like this example.
- * @example
- * SyntaxError: Unexpected token < in JSON at position 0
- */
-export async function getMapServiceMetadata(
-  url: string
-): Promise<IMetadataDocList | null> {
-  const serviceInfo = await getMapServiceData(url);
-  if (
-    !serviceInfo.supportedExtensions ||
-    serviceInfo.supportedExtensions.length === 0 ||
-    !serviceInfo.supportedExtensions.includes(layerMetadataCapability)
-  ) {
+  const mapServiceUrl = match[1];
+  const layerId = match[2] ? parseInt(match[2], 10) : null;
+  const mapServiceData = await getMapServiceData(mapServiceUrl);
+  if (!supportsLayerMetadata(mapServiceData)) {
     return null;
   }
+
   const layerSourcesUrlPart = `exts/${layerMetadataCapability}/layerSources`;
   const layerSourcesUrl = `${url.replace(
     /\/?$/,
     ""
   )}/${layerSourcesUrlPart}?f=json`;
   const response = await fetch(layerSourcesUrl);
-  const responseJson = await response.text();
+
+  function makeMetadataUrl(serviceUrl: string, id: number) {
+    return `${serviceUrl}/exts/${layerMetadataCapability}/metadata/${id}`;
+  }
+
+  if (layerId !== null) {
+    const metadataLayers: ILayerSources = await response.json();
+    const output: IMetadataDocList = {};
+    let found: boolean = false;
+    for (const dataset in metadataLayers) {
+      if (metadataLayers.hasOwnProperty(dataset)) {
+        const layerIds = metadataLayers[dataset];
+        if (layerIds && layerIds.length && layerIds.includes(layerId)) {
+          output[dataset] = makeMetadataUrl(mapServiceUrl, layerId);
+          found = true;
+          break;
+        }
+      }
+    }
+    return found ? output : null;
+  }
 
   /**
    * The response to the URL will be a JSON object. It's properties will be named after dataset names
@@ -193,11 +225,60 @@ export async function getMapServiceMetadata(
   function sourceReviver(key: string, value: any) {
     if (Array.isArray(value) && value.length > 0) {
       const id = value[0];
-      return `${url}/exts/${layerMetadataCapability}/metadata/${id}`;
+      return `${mapServiceUrl}/exts/${layerMetadataCapability}/metadata/${id}`;
     }
     return value;
   }
 
-  const output = JSON.parse(responseJson, sourceReviver);
-  return output;
+  const txt = await response.text();
+  return JSON.parse(txt, sourceReviver) as IMetadataDocList;
 }
+
+// /**
+//  * Returns a list of URLs to geodata metadata documents.
+//  * @param url URL to a map service
+//  * @returns If the LayerMetadata SOE is supported by the service, a list of metadata links is returned.
+//  * Otherwise null is returned.
+//  * @exception {SyntaxError} A syntax error will be thrown if the web reqests do not return JSON as expected.
+//  * The error message will look something like this example.
+//  * @example
+//  * SyntaxError: Unexpected token < in JSON at position 0
+//  */
+// export async function getMapServiceMetadata(
+//   url: string
+// ): Promise<IMetadataDocList | null> {
+//   const serviceInfo = await getMapServiceData(url);
+//   if (!supportsLayerMetadata(serviceInfo)) {
+//     return null;
+//   }
+//   const layerSourcesUrlPart = `exts/${layerMetadataCapability}/layerSources`;
+//   const layerSourcesUrl = `${url.replace(
+//     /\/?$/,
+//     ""
+//   )}/${layerSourcesUrlPart}?f=json`;
+//   const response = await fetch(layerSourcesUrl);
+//   const responseJson = await response.text();
+
+//   /**
+//    * The response to the URL will be a JSON object. It's properties will be named after dataset names
+//    * and the value of these properties will be arrays of numbers representing layer IDs of the layers
+//    * that are based on these datasets. The metadata for all layer IDs in an array will be identical since they
+//    * point to a common dataset. For each array of layer IDs, this function will instead return the metadata URL
+//    * for the first layer ID in the list.
+//    * @param key Property name. In this case, each will be the name of a dataset.
+//    * @example
+//    * MyServer.dbo.MyTableName
+//    * @param value A property value. In this case these should only ever be an array of numbers. Other value types
+//    * will simply use the default JSON.parse behavior.
+//    */
+//   function sourceReviver(key: string, value: any) {
+//     if (Array.isArray(value) && value.length > 0) {
+//       const id = value[0];
+//       return `${url}/exts/${layerMetadataCapability}/metadata/${id}`;
+//     }
+//     return value;
+//   }
+
+//   const output = JSON.parse(responseJson, sourceReviver);
+//   return output;
+// }
