@@ -7,6 +7,15 @@
     <title>Metadata List Demo</title>
 </head>
 <body>
+    <form action="." method="get">
+        <label for="mapBox">ArcGIS Online Map ID</label>
+        <input id="mapBox" name="map" type="text" list="maplist" />
+        <datalist id="maplist">
+            <option value="927b5daaa7f4434db4b312364489544d">WSDOT Community Planning Portal</option>
+            <option value="f99de5dfad0b49efa402c900a03dea49">WSDOT Park and Ride</option>
+        </datalist>
+        <button type="submit">Submit</button>
+    </form>
     <script src="dist/index.js"></script>
 </body>
 </html>

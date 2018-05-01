@@ -14,8 +14,6 @@ interface IWebMap {
   operationalLayers: IOperationalLayer[];
 }
 
-const defaultMapId = "927b5daaa7f4434db4b312364489544d";
-
 async function getWebMap(mapId: string) {
   const webmap: IWebMap = await getItemData(mapId, {
     httpMethod: "GET"
@@ -34,9 +32,12 @@ function createListItem(layer: IOperationalLayer): HTMLLIElement {
       // TODO: setup the links and remove progress bar.
       progress.remove();
       if (!docList) {
-        if (li.parentElement) {
-          li.remove();
-        }
+        // if (li.parentElement) {
+        //   li.remove();
+        // }
+        const message = document.createElement("p");
+        message.textContent = "No metadata available for this layer";
+        li.appendChild(message);
         return;
       }
 
@@ -60,16 +61,17 @@ function createListItem(layer: IOperationalLayer): HTMLLIElement {
     error => {
       // TODO: remove progress and add error message info.
       progress.remove();
-      li.textContent = "No metadata available";
-      console.error(error);
+      const textNode = document.createTextNode(
+        error.message || "No metadata available"
+      );
+      li.appendChild(textNode);
     }
   );
 
   return li;
 }
 
-async function createList() {
-  const webmap = await getWebMap(defaultMapId);
+function createList(webmap: IWebMap) {
   const { operationalLayers } = webmap;
   const frag = document.createDocumentFragment();
 
@@ -83,6 +85,26 @@ async function createList() {
   return list;
 }
 
-createList().then(list => {
-  document.body.appendChild(list);
-});
+function start() {
+  const url = new URL(location.href);
+  const { searchParams } = url;
+  const mapId = searchParams.get("map");
+
+  const form = document.forms[0];
+
+  if (mapId) {
+    form.remove();
+    getWebMap(mapId).then(webmap => {
+      if (webmap.operationalLayers && webmap.operationalLayers.length) {
+        const list = createList(webmap);
+        document.body.appendChild(list);
+      } else {
+        const p = document.createElement("p");
+        p.textContent = "This map does not have any operational layers.";
+        document.body.appendChild(p);
+      }
+    });
+  }
+}
+
+start();
