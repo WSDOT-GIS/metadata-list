@@ -1,6 +1,6 @@
 {
   "name": "@wsdot/metadata-list",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Creates an HTML list of metadata links using WSDOT's metadata SOE",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,7 +32,6 @@
   "repository": "https://github.com/WSDOT-GIS/metadata-list.git",
   "peerDependencies": {
     "@esri/arcgis-rest-auth": "^1.1.1",
-
     "@esri/arcgis-rest-common-types": "^1.1.1",
     "@esri/arcgis-rest-items": "^1.1.1",
     "@esri/arcgis-rest-request": "^1.1.1"

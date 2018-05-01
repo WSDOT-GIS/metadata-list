@@ -1,6 +1,6 @@
 {
   "name": "demo",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Sample using metadata-list in DOM.",
   "main": "index.js",
   "author": "WSDOT",
@@ -14,7 +14,7 @@
     "@esri/arcgis-rest-common-types": "^1.1.1",
     "@esri/arcgis-rest-items": "^1.1.1",
     "@esri/arcgis-rest-request": "^1.1.1",
-    "@wsdot/metadata-list": "^0.0.2",
+    "@wsdot/metadata-list": "^0.1.0",
     "prettier": "^1.12.1",
     "source-map": "^0.7.2",
     "ts-loader": "^4.2.0",
