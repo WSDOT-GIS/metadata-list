@@ -17,6 +17,10 @@
     "access": "public"
   },
   "devDependencies": {
+    "@esri/arcgis-rest-auth": "^1.1.1",
+    "@esri/arcgis-rest-common-types": "^1.1.1",
+    "@esri/arcgis-rest-items": "^1.1.1",
+    "@esri/arcgis-rest-request": "^1.1.1",
     "intern": "^4.2.0",
     "isomorphic-fetch": "^2.2.1",
     "prettier": "^1.12.1",
@@ -25,5 +29,12 @@
     "tslint-plugin-prettier": "^1.3.0",
     "typescript": "^2.8.3"
   },
-  "repository": "https://github.com/WSDOT-GIS/metadata-list.git"
+  "repository": "https://github.com/WSDOT-GIS/metadata-list.git",
+  "peerDependencies": {
+    "@esri/arcgis-rest-auth": "^1.1.1",
+
+    "@esri/arcgis-rest-common-types": "^1.1.1",
+    "@esri/arcgis-rest-items": "^1.1.1",
+    "@esri/arcgis-rest-request": "^1.1.1"
+  }
 }
