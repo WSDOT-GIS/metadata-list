@@ -21,6 +21,11 @@ async function getWebMap(mapId: string) {
   return webmap;
 }
 
+/**
+ * Creates a list item that will show metadata links for data
+ * that is displayed by an operational layer.
+ * @param layer An operational layer.
+ */
 function createListItem(layer: IOperationalLayer): HTMLLIElement {
   const li = document.createElement("li");
   li.textContent = layer.title;
@@ -29,12 +34,9 @@ function createListItem(layer: IOperationalLayer): HTMLLIElement {
 
   getMapServiceMetadata(layer.url).then(
     docList => {
-      // TODO: setup the links and remove progress bar.
+      // setup the links and remove progress bar.
       progress.remove();
       if (!docList) {
-        // if (li.parentElement) {
-        //   li.remove();
-        // }
         const message = document.createElement("p");
         message.textContent = "No metadata available for this layer";
         li.appendChild(message);
@@ -59,7 +61,7 @@ function createListItem(layer: IOperationalLayer): HTMLLIElement {
       li.appendChild(innnerList);
     },
     error => {
-      // TODO: remove progress and add error message info.
+      // remove progress and add error message info.
       progress.remove();
       const textNode = document.createTextNode(
         error.message || "No metadata available"
@@ -71,6 +73,10 @@ function createListItem(layer: IOperationalLayer): HTMLLIElement {
   return li;
 }
 
+/**
+ * Creates a list of all the metadata for the data associated with the operational layers in a web map.
+ * @param webmap A web map
+ */
 function createList(webmap: IWebMap) {
   const { operationalLayers } = webmap;
   const frag = document.createDocumentFragment();
@@ -85,6 +91,9 @@ function createList(webmap: IWebMap) {
   return list;
 }
 
+/**
+ * Starts the code for the demo page.
+ */
 function start() {
   const url = new URL(location.href);
   const { searchParams } = url;
@@ -93,7 +102,9 @@ function start() {
   const form = document.forms[0];
 
   if (mapId) {
+    // Remove the user input form.
     form.remove();
+    // Get operational layers' metadata links and display in a list.
     getWebMap(mapId).then(webmap => {
       if (webmap.operationalLayers && webmap.operationalLayers.length) {
         const list = createList(webmap);
